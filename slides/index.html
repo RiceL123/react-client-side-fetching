@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <title>reveal.js</title>
+
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/theme/serif.css" />
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>Client-side fetching in React</section>
+        <section>
+          <h1>Agenda</h1>
+          <p style="font-size: smaller">
+            Assumptions: You have a basic grasp of React's useEffect
+          </p>
+          <ul>
+            <li class="fragment">classic fetch in useEffect</li>
+            <li class="fragment">Suspense + use</li>
+            <li class="fragment">
+              Libraries like SWR and Tanstack Query (React Query)
+            </li>
+          </ul>
+        </section>
+        <section>
+          <section data-auto-animate>
+            <p>fetch in Effects (the classic approach)</p>
+            <pre
+              data-id="effect"
+            ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+import { useState, useEffect } from "react";
+
+const CAT_FACT_URL = "https://catfact.ninja/fact";
+
+export default function App() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [catFact, setCatFact] = useState(null);
+
+  useEffect(() => {
+    async function fetchCatFacts() {
+      setIsLoading(true);
+      const response = await fetch(CAT_FACT_URL);
+      const json = await response.json();
+      setCatFact(json["fact"]);
+      setIsLoading(false);
+    }
+
+    fetchCatFacts();
+  }, []); // empty dependency array to run once on mount
+
+  if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
+  return &lt;p&gt;{catFact}&lt;/p&gt;;
+}
+					</code></pre>
+          </section>
+
+          <section data-auto-animate>
+            <p>useEffect with Custom Hook</p>
+            <pre
+              data-id="effect"
+            ><code data-trim data-line-numbers="1-29|5-22|24-29|1-29" style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+import { useState, useEffect } from "react";
+
+const CAT_FACT_URL = "https://catfact.ninja/fact";
+
+function useCatFact() { // 'use' prefix for custom hook
+  const [isLoading, setIsLoading] = useState(false);
+  const [catFact, setCatFact] = useState(null);
+
+  useEffect(() => {
+    async function fetchCatFacts() {
+      setIsLoading(true);
+      const response = await fetch(CAT_FACT_URL);
+      const json = await response.json();
+      setCatFact(json["fact"]);
+      setIsLoading(false);
+    }
+
+    fetchCatFacts();
+  }, []);
+
+  return { isLoading, catFact };
+}
+
+export default function App() {
+  const { catFact, isLoading } = useCatFact();
+
+  if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
+  return &lt;p&gt;{catFact}&lt;/p&gt;;
+}
+					</code></pre>
+          </section>
+
+          <section>
+            <h3>This works</h3>
+            <p class="fragment">
+              But it is not the best solution we have in 2025
+            </p>
+            <ul class="fragment" style="font-size: smaller">
+              <li>
+                The manual management of state is imperative making its harder
+                to reason about and maintain
+              </li>
+              <li>
+                It is less performant because it has to wait for the component
+                to render before fetching
+              </li>
+            </ul>
+            <p class="fragment">So let's update it to use modern React v19</p>
+            <p style="margin-top: auto; font-size: 0.4em">
+              Note: If you see a double fetch its due to StrictMode which helps
+              catch errors during development. In production only one fetch will
+              be called
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <p>Suspense + use</p>
+            <pre><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+import { Suspense, use } from "react";
+
+const CAT_FACT_URL = "https://catfact.ninja/fact";
+
+function CatFact({ catFactPromise }) {
+  const catFact = use(catFactPromise); // suspends until promise resolves
+  return &lt;p&gt;{catFact}&lt;/p&gt;;
+}
+
+export default function App() {
+  const catFactPromise = fetch(CAT_FACT_URL)
+    .then((res) => res.json())
+    .then((json) => json.fact);
+
+  return (
+    &lt;Suspense fallback={&lt;p>Loading...&lt;/p&gt;}&gt;
+      &lt;CatFact catFactPromise={catFactPromise} /&gt;
+    &lt;/Suspense&gt;
+  );
+}
+					</code></pre>
+          </section>
+          <section>
+            <p>Suspense + use</p>
+            <ul>
+              <li>available since React v19+ (dec 2024)</li>
+              <li>
+                <code>React.use</code> does not support promises created in
+                render
+              </li>
+              <li>
+                <code>Suspense</code> is designed for resources consumed
+                directly during render so it cannot detect fetches inside an
+                Effect or event handler
+              </li>
+            </ul>
+          </section>
+        </section>
+        <section>External Libraries</section>
+        <section>
+          <section data-auto-animate>
+            <p>SWR (stale-while-revalidate)</p>
+            <pre
+              data-id="swr"
+            ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+import useSWR from "swr";
+
+const CAT_FACT_URL = "https://catfact.ninja/fact";
+
+const fetcher = (url) => fetch(url).then((res) => res.json());
+
+export default function App() {
+  const { data, isLoading } = useSWR(CAT_FACT_URL, fetcher);
+
+  if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
+  return &lt;p&gt;{data.fact}&lt;/p&gt;;
+}
+					</code></pre>
+          </section>
+          <section data-auto-animate>
+            <p>SWR (stale-while-revalidate) + Suspense</p>
+            <pre
+              data-id="swr"
+            ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+import { Suspense } from "react";
+import useSWR from "swr";
+
+const CAT_FACT_URL = "https://catfact.ninja/fact";
+
+const fetcher = (url) => fetch(url).then((res) => res.json());
+
+function CatFact() {
+  const { data } = useSWR(CAT_FACT_URL, fetcher, { suspense: true });
+  return &lt;p&gt;{data.fact}&lt;/p&gt;;
+}
+
+export default function App() {
+  return (
+    &lt;Suspense fallback={&lt;p&gt;Loading...&lt;/p&gt;}&gt;
+      &lt;CatFact /&gt;
+    &lt;/Suspense&gt;
+  );
+}
+					</code></pre>
+          </section>
+          <section>
+            <p>SWR (stale-while-revalidate)</p>
+            <ul>
+              <li>~8kb</li>
+              <li>Simple and avoids boiler plate</li>
+              <li>
+                Manages state for you and provides loading, error and success
+                states
+              </li>
+              <li>
+                Flexible for how you want to design your code (with or without
+                Suspense)
+              </li>
+              <li>
+                Performant as it caches queries and has options for mutations
+                and more
+              </li>
+            </ul>
+          </section>
+        </section>
+
+        <section>
+          <section data-auto-animate>
+            <p>TanStack Query (formerly React Query)</p>
+            <pre
+              data-id="tanstack"
+            ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+import { useQuery } from "@tanstack/react-query";
+
+const CAT_FACT_URL = "https://catfact.ninja/fact";
+
+function useCatFact() {
+  return useQuery({
+    queryKey: ["cat-fact"],
+    queryFn: async () => {
+      const response = await fetch(CAT_FACT_URL);
+      return await response.json();
+    },
+  });
+}
+
+export default function App() {
+  const { data, isLoading } = useCatFact();
+
+  if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
+  return &lt;p&gt;{data.fact}&lt;/p&gt;;
+}
+					</code></pre>
+          </section>
+          <section data-auto-animate>
+            <p>TanStack Query (formerly React Query) + Suspense</p>
+            <pre
+              data-id="tanstack"
+            ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+import { Suspense } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+
+const CAT_FACT_URL = "https://catfact.ninja/fact";
+
+function useCatFact() {
+  return useSuspenseQuery({
+    queryKey: ["cat-fact"],
+    queryFn: async () => {
+      const response = await fetch(CAT_FACT_URL);
+      return await response.json();
+    },
+  });
+}
+
+function CatFact() {
+  const { data } = useCatFact();
+  return &lt;p&gt;{data.fact}&lt;/p&gt;;
+}
+
+export default function App() {
+  return (
+    &lt;Suspense fallback={&lt;p&gt;Loading...&lt;/p&gt;}&gt;
+      &lt;CatFact /&gt;
+    &lt;/Suspense&gt;
+  );
+}
+					</code></pre>
+          </section>
+          <section>
+            <p>TanStack Query</p>
+            <ul>
+              <li>~20kb</li>
+              <li>Comprehensive set of features</li>
+              <li>
+                Manages state for you and provides loading, error and success
+                states
+              </li>
+              <li>
+                Flexible for how you want to design your code (with or without
+                Suspense)
+              </li>
+              <li>
+                Performant with caching, retry logic, background updates and
+                more out the box
+              </li>
+            </ul>
+          </section>
+        </section>
+
+        <section>
+          <h2>Conclusion</h2>
+          <ul>
+            <li>
+              Stop fetching in useEffect - it's less maintainable and less
+              performant
+            </li>
+            <li>
+              Use modern React patterns or popular libraries (or both) instead
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script>
+      // More info about initialization & config:
+      // - https://revealjs.com/initialization/
+      // - https://revealjs.com/config/
+      Reveal.initialize({
+        hash: true,
+
+        // Learn about plugins: https://revealjs.com/plugins/
+        plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+      });
+    </script>
+  </body>
+</html>
