@@ -1,14 +1,13 @@
 import { Suspense, use } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
-const CAT_FACT_URL = "https://catfact.ninja/fact123";
+const CAT_FACT_URL = "https://catfact.ninja/fact";
 
-function useCatpromise() {
+function useCatPromise() {
   return fetch(CAT_FACT_URL)
     .then((res) => res.json())
     .then((json) => json.fact);
-  // .catch((e) => "Error: " + e);
-  
+  // .catch(() => "Error...");
 }
 
 function CatFact({ catPromise }) {
@@ -18,10 +17,9 @@ function CatFact({ catPromise }) {
 }
 
 export default function App() {
-  const catPromise = useCatpromise();
-
+  const catPromise = useCatPromise();
   return (
-    <ErrorBoundary fallback={<p>Error from ErrorBoundary...</p>}>
+    <ErrorBoundary fallback={<p>Error...</p>}>
       <Suspense fallback={<p>Loading...</p>}>
         <CatFact catPromise={catPromise} />
       </Suspense>

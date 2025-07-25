@@ -15,16 +15,21 @@ const activeStyles = {
 
 function Header() {
   return (
-    <nav style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem" }}>
+    <nav
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "1.5rem",
+        borderBottom: "1px black solid",
+      }}
+    >
       {[
         { to: "/", label: "Home" },
         { to: "/useEffect", label: "useEffect" },
         { to: "/customHook", label: "useEffect + Custom Hook" },
         { to: "/use", label: "Suspense + use" },
+        { to: "/use-customHook", label: "use + Custom Hook"},
         { to: "/tanstackQuery", label: "TanStack Query" },
-        { to: "/tanstackQuery-suspense", label: "TanStack Query + Suspense" },
-        { to: "/swr", label: "SWR" },
-        { to: "/swr-suspense", label: "SWR + Suspense" },
       ].map(({ to, label }) => (
         <NavLink
           key={to}

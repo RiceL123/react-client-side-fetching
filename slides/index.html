@@ -22,15 +22,50 @@
         <section>Client-side fetching in React</section>
         <section>
           <h1>Agenda</h1>
-          <p style="font-size: smaller">
-            Assumptions: You have a basic grasp of React's useEffect
-          </p>
           <ul>
             <li class="fragment">classic fetch in useEffect</li>
             <li class="fragment">Suspense + use</li>
-            <li class="fragment">
-              Libraries like SWR and Tanstack Query (React Query)
-            </li>
+            <!-- <li class="fragment">Tanstack Query (Formerly React Query)</li> -->
+          </ul>
+        </section>
+        <section>
+          <h4>Assumptions</h4>
+          <ul>
+            <li style="font-size: 0.5em">Basic understanding of fetch</li>
+            <iframe
+              width="560"
+              height="250"
+              src="https://www.youtube.com/embed/jQ3zv8hp9qU?si=71Q00-5iZTv9Xqkt"
+              title="YouTube video player"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            ></iframe>
+            <li style="font-size: 0.5em">Basic understanding of useState and useEffect hooks</li>
+            <div style="display: flex; height: 250px; gap: 4px">
+              <iframe
+                width="560"
+                height="315"
+                src="https://www.youtube.com/embed/iH9ZBaFrFbk?si=skRQ7x0zwxD35dhN"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+              <iframe
+                width="560"
+                height="315"
+                src="https://www.youtube.com/embed/2a_83Qi8DKg?si=4pmNmWsby8_embbO"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <!-- <li class="fragment">Tanstack Query (Formerly React Query)</li> -->
           </ul>
         </section>
         <section>
@@ -44,59 +79,66 @@ import { useState, useEffect } from "react";
 const CAT_FACT_URL = "https://catfact.ninja/fact";
 
 export default function App() {
+  const [isError, setIsError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [catFact, setCatFact] = useState(null);
 
   useEffect(() => {
     async function fetchCatFacts() {
       setIsLoading(true);
-      const response = await fetch(CAT_FACT_URL);
-      const json = await response.json();
-      setCatFact(json["fact"]);
-      setIsLoading(false);
+      fetch(CAT_FACT_URL)
+        .then((res) => res.json())
+        .then((json) => setCatFact(json.fact))
+        .catch(() => setIsError(true))
+        .finally(() => setIsLoading(false));
     }
 
     fetchCatFacts();
   }, []); // empty dependency array to run once on mount
 
   if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
+  if (isError) return &lt;p&gt;Error...&lt;/p&gt;;
   return &lt;p&gt;{catFact}&lt;/p&gt;;
 }
 					</code></pre>
           </section>
 
           <section data-auto-animate>
-            <p>useEffect with Custom Hook</p>
+            <p style="margin-bottom: 0px">useEffect with Custom Hook</p>
             <pre
               data-id="effect"
-            ><code data-trim data-line-numbers="1-29|5-22|24-29|1-29" style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
+              style="margin-top: 0px"
+            ><code data-trim data-line-numbers="1-32|5-24|26-32|1-32" style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
 import { useState, useEffect } from "react";
 
 const CAT_FACT_URL = "https://catfact.ninja/fact";
 
-function useCatFact() { // 'use' prefix for custom hook
+function useCatFact() {
+  const [isError, setIsError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [catFact, setCatFact] = useState(null);
 
   useEffect(() => {
     async function fetchCatFacts() {
       setIsLoading(true);
-      const response = await fetch(CAT_FACT_URL);
-      const json = await response.json();
-      setCatFact(json["fact"]);
-      setIsLoading(false);
+      fetch(CAT_FACT_URL)
+        .then((res) => res.json())
+        .then((json) => setCatFact(json.fact))
+        .catch(() => setIsError(true))
+        .finally(() => setIsLoading(false));
     }
 
     fetchCatFacts();
-  }, []);
+  }, []); // empty dependency array to run once on mount
 
-  return { isLoading, catFact };
+  return { isError, isLoading, catFact };
 }
 
 export default function App() {
-  const { catFact, isLoading } = useCatFact();
+  const { isError, isLoading, catFact } = useCatFact();
 
   if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
+  if (isError) return &lt;p&gt;Error...&lt;/p&gt;;
   return &lt;p&gt;{catFact}&lt;/p&gt;;
 }
 					</code></pre>
@@ -131,12 +173,13 @@ export default function App() {
             <p>Suspense + use</p>
             <pre><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
 import { Suspense, use } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 
 const CAT_FACT_URL = "https://catfact.ninja/fact";
 
 function CatFact({ catFactPromise }) {
-  const catFact = use(catFactPromise); // suspends until promise resolves
-  return &lt;p&gt;{catFact}&lt;/p&gt;;
+  const catFact = use(catFactPromise);
+  return <p>{catFact}</p>;
 }
 
 export default function App() {
@@ -145,9 +188,11 @@ export default function App() {
     .then((json) => json.fact);
 
   return (
-    &lt;Suspense fallback={&lt;p>Loading...&lt;/p&gt;}&gt;
-      &lt;CatFact catFactPromise={catFactPromise} /&gt;
-    &lt;/Suspense&gt;
+    &lt;ErrorBoundary fallback={&lt;p>Error...&lt;/p&gt;}&gt;
+      &lt;Suspense fallback={&lt;p>Loading...&lt;/p&gt;}&gt;
+        &lt;CatFact catFactPromise={catFactPromise} /&gt;
+      &lt;/Suspense&gt;
+    &lt;/ErrorBoundary&gt;
   );
 }
 					</code></pre>
@@ -161,82 +206,55 @@ export default function App() {
                 render
               </li>
               <li>
-                <code>Suspense</code> is designed for resources consumed
-                directly during render so it cannot detect fetches inside an
-                Effect or event handler
+                Either wrap your code in an <code>ErrorBoundary</code> or use a
+                <code>Promise.catch</code> to provide an alternative value to
+                handle errors
               </li>
             </ul>
           </section>
         </section>
-        <section>External Libraries</section>
-        <section>
+        <!-- <section>
+          <section>External Libraries</section>
           <section data-auto-animate>
-            <p>SWR (stale-while-revalidate)</p>
+            <p style="margin-bottom: 0px">useEffect with Custom Hook</p>
             <pre
-              data-id="swr"
+              data-id="tanstack"
+              style="margin-top: 0px"
             ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
-import useSWR from "swr";
+import { useState, useEffect } from "react";
 
 const CAT_FACT_URL = "https://catfact.ninja/fact";
 
-const fetcher = (url) => fetch(url).then((res) => res.json());
+function useCatFact() {
+  const [isError, setIsError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [catFact, setCatFact] = useState(null);
+
+  useEffect(() => {
+    async function fetchCatFacts() {
+      setIsLoading(true);
+      fetch(CAT_FACT_URL)
+        .then((res) => res.json())
+        .then((json) => setCatFact(json.fact))
+        .catch(() => setIsError(true))
+        .finally(() => setIsLoading(false));
+    }
+
+    fetchCatFacts();
+  }, []); // empty dependency array to run once on mount
+
+  return { isError, isLoading, catFact };
+}
 
 export default function App() {
-  const { data, isLoading } = useSWR(CAT_FACT_URL, fetcher);
+  const { isError, isLoading, catFact } = useCatFact();
 
   if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
-  return &lt;p&gt;{data.fact}&lt;/p&gt;;
+  if (isError) return &lt;p&gt;Error...&lt;/p&gt;;
+  return &lt;p&gt;{catFact}&lt;/p&gt;;
 }
 					</code></pre>
           </section>
-          <section data-auto-animate>
-            <p>SWR (stale-while-revalidate) + Suspense</p>
-            <pre
-              data-id="swr"
-            ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
-import { Suspense } from "react";
-import useSWR from "swr";
-
-const CAT_FACT_URL = "https://catfact.ninja/fact";
-
-const fetcher = (url) => fetch(url).then((res) => res.json());
-
-function CatFact() {
-  const { data } = useSWR(CAT_FACT_URL, fetcher, { suspense: true });
-  return &lt;p&gt;{data.fact}&lt;/p&gt;;
-}
-
-export default function App() {
-  return (
-    &lt;Suspense fallback={&lt;p&gt;Loading...&lt;/p&gt;}&gt;
-      &lt;CatFact /&gt;
-    &lt;/Suspense&gt;
-  );
-}
-					</code></pre>
-          </section>
-          <section>
-            <p>SWR (stale-while-revalidate)</p>
-            <ul>
-              <li>~8kb</li>
-              <li>Simple and avoids boiler plate</li>
-              <li>
-                Manages state for you and provides loading, error and success
-                states
-              </li>
-              <li>
-                Flexible for how you want to design your code (with or without
-                Suspense)
-              </li>
-              <li>
-                Performant as it caches queries and has options for mutations
-                and more
-              </li>
-            </ul>
-          </section>
-        </section>
-
-        <section>
           <section data-auto-animate>
             <p>TanStack Query (formerly React Query)</p>
             <pre
@@ -249,75 +267,48 @@ const CAT_FACT_URL = "https://catfact.ninja/fact";
 function useCatFact() {
   return useQuery({
     queryKey: ["cat-fact"],
-    queryFn: async () => {
-      const response = await fetch(CAT_FACT_URL);
-      return await response.json();
-    },
+    queryFn: async () =>
+      fetch(CAT_FACT_URL)
+        .then((res) => res.json())
+        .then((json) => json.fact),
   });
 }
 
 export default function App() {
-  const { data, isLoading } = useCatFact();
+  const { data, isLoading, isError } = useCatFact();
 
   if (isLoading) return &lt;p&gt;Loading...&lt;/p&gt;;
-  return &lt;p&gt;{data.fact}&lt;/p&gt;;
-}
-					</code></pre>
-          </section>
-          <section data-auto-animate>
-            <p>TanStack Query (formerly React Query) + Suspense</p>
-            <pre
-              data-id="tanstack"
-            ><code data-trim data-line-numbers style="max-height: 675px; font-size: 1rem; line-height: 1.2rem;">
-import { Suspense } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
-
-const CAT_FACT_URL = "https://catfact.ninja/fact";
-
-function useCatFact() {
-  return useSuspenseQuery({
-    queryKey: ["cat-fact"],
-    queryFn: async () => {
-      const response = await fetch(CAT_FACT_URL);
-      return await response.json();
-    },
-  });
-}
-
-function CatFact() {
-  const { data } = useCatFact();
-  return &lt;p&gt;{data.fact}&lt;/p&gt;;
-}
-
-export default function App() {
-  return (
-    &lt;Suspense fallback={&lt;p&gt;Loading...&lt;/p&gt;}&gt;
-      &lt;CatFact /&gt;
-    &lt;/Suspense&gt;
-  );
+  if (isError) return &lt;p&gt;Error...&lt;/p&gt;;
+  return &lt;p&gt;{data}&lt;/p&gt;;
 }
 					</code></pre>
           </section>
           <section>
             <p>TanStack Query</p>
-            <ul>
-              <li>~20kb</li>
-              <li>Comprehensive set of features</li>
+            <ul style="font-size: smaller">
               <li>
-                Manages state for you and provides loading, error and success
-                states
+                <span style="font-weight: bold"
+                  >Popular and well documented</span
+                >: in industry and simple applications with ~10 million
+                downloads per week (for comparison react has ~40 million per
+                week)
               </li>
               <li>
-                Flexible for how you want to design your code (with or without
-                Suspense)
+                <span style="font-weight: bold">Manages state for you</span>:
+                provides loading, error, success states (and much more)
               </li>
               <li>
-                Performant with caching, retry logic, background updates and
-                more out the box
+                <span style="font-weight: bold">Batteries included</span>:
+                comprehensive set of performant features like caching, retry
+                logic, background updates and more out the box
+              </li>
+              <li style="font-size: small">
+                <code>&lt;QueryClientProvider&gt;</code> required somewhere
+                higher up in component tree for cache
               </li>
             </ul>
           </section>
-        </section>
+        </section> -->
 
         <section>
           <h2>Conclusion</h2>
@@ -326,9 +317,7 @@ export default function App() {
               Stop fetching in useEffect - it's less maintainable and less
               performant
             </li>
-            <li>
-              Use modern React patterns or popular libraries (or both) instead
-            </li>
+            <li>Use modern React patterns or popular libraries instead</li>
           </ul>
         </section>
       </div>

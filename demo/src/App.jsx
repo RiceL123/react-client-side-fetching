@@ -16,6 +16,9 @@ export default function App() {
           <li>
             <Link to="/use">Suspense + use</Link>
           </li>
+          <li>
+            <Link to="/use-customHook">Suspense + use</Link>
+          </li>
         </ul>
       </div>
       <hr />
@@ -23,16 +26,7 @@ export default function App() {
         <p>libraries</p>
         <ul>
           <li>
-            <Link to="/swr">SWR</Link>
-          </li>
-          <li>
-            <Link to="/swr-suspense">SWR + Suspense</Link>
-          </li>
-          <li>
             <Link to="/tanstackQuery">TanStack Query</Link>
-          </li>
-          <li>
-            <Link to="/tanstackQuery-suspense">TanStack Query + Suspense</Link>
           </li>
         </ul>
       </div>
